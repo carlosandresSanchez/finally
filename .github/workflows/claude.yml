@@ -30,6 +30,10 @@ jobs:
         with:
           fetch-depth: 1
 
+      # The backend is a uv project; Claude needs uv to install deps and run tests
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
@@ -46,5 +50,8 @@ jobs:
           # Optional: Add claude_args to customize behavior and configuration
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
-          # claude_args: '--allowed-tools Bash(gh pr *)'
+          # Allow Claude to install deps, run tests/lint, and commit + push its work.
+          # Without this, Bash is denied and changes are lost when the runner exits.
+          claude_args: |
+            --allowedTools "Bash(uv:*),Bash(uvx:*),Bash(python:*),Bash(python3:*),Bash(pytest:*),Bash(npm:*),Bash(npx:*),Bash(node:*),Bash(git:*),Bash(ls:*),Bash(mkdir:*),Bash(cat:*),Bash(mv:*),Bash(cp:*),Bash(rm:*)"
 
