@@ -26,15 +26,59 @@ Single Docker container serving everything on port 8000:
 ## Quick Start
 
 ```bash
-# Clone and configure
-cp .env.example .env
-# Add your OPENROUTER_API_KEY to .env
+cp .env.example .env          # add your OPENROUTER_API_KEY
+./scripts/start_mac.sh        # Windows: .\scripts\start_windows.ps1
+# → http://localhost:8000
+./scripts/stop_mac.sh         # data persists in the finally-data volume
+```
 
-# Run with Docker
+Or directly with Docker:
+
+```bash
 docker build -t finally .
 docker run -v finally-data:/app/db -p 8000:8000 --env-file .env finally
+```
 
-# Open http://localhost:8000
+## Local Development
+
+**Backend** (FastAPI + uv) — serves the API on :8000, plus the frontend if `backend/static/` exists:
+
+```bash
+cd backend
+uv sync --extra dev
+uv run uvicorn app.main:app --reload --port 8000
+uv run pytest                 # unit + API tests
+```
+
+**Frontend** (Next.js) — dev server on :3000, proxies `/api/*` to the backend on :8000:
+
+```bash
+cd frontend
+npm install
+npm run dev
+npm test                      # Vitest + React Testing Library
+```
+
+To serve the production UI from the backend without Docker:
+
+```bash
+(cd frontend && npm run build) && rm -rf backend/static && cp -r frontend/out backend/static
+cd backend && uv run uvicorn app.main:app --port 8000
+```
+
+## E2E Tests
+
+Playwright tests in `test/` run against the app with `LLM_MOCK=true`:
+
+```bash
+docker compose -f test/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from playwright
+```
+
+Or against a locally running backend (`LLM_MOCK=true`, fresh `DB_PATH`):
+
+```bash
+cd test && npm install && npx playwright install chromium
+BASE_URL=http://localhost:8000 npx playwright test
 ```
 
 ## Environment Variables
@@ -60,3 +104,4 @@ finally/
 ## License
 
 See [LICENSE](LICENSE).
+| `DB_PATH` | No | SQLite file location (default `db/finally.db`; `/app/db/finally.db` in Docker) |
